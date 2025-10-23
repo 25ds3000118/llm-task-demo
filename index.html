@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>BIO-TECHNE Corp - Share Volume</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; padding: 28px; background:#f5f8fb; color:#111; }
+    .card{background:white;padding:20px;border-radius:10px; box-shadow:0 6px 20px rgba(15,20,30,0.08); max-width:720px;}
+    h1{margin:0 0 12px; font-size:26px}
+    .row{display:flex; gap:16px; margin-top:12px}
+    .stat{flex:1; padding:12px; border-radius:8px; background:#f7fafc}
+    .label{font-size:12px;color:#666}
+    .value{font-weight:700;font-size:18px;margin-top:6px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1 id="share-entity-name">BIO-TECHNE Corp</h1>
+    <div class="row">
+      <div class="stat">
+        <div class="label">Max Value</div>
+        <div class="value" id="share-max-value">158891800</div>
+        <div class="label">FY</div>
+        <div id="share-max-fy">2025</div>
+      </div>
+      <div class="stat">
+        <div class="label">Min Value</div>
+        <div class="value" id="share-min-value">38609307</div>
+        <div class="label">FY</div>
+        <div id="share-min-fy">2021</div>
+      </div>
+    </div>
+    <p style="margin-top:14px;color:#444">Data fetched from <code>https://data.sec.gov/api/xbrl/companyconcept/CIK0000842023/dei/EntityCommonStockSharesOutstanding.json</code>. Change CIK with <code>?CIK=0001018724</code> to load other companies (uses client-side fetch).</p>
+  </div>
+
+  <script>
+    // client-side logic to support ?CIK= override (updates DOM without reload)
+    async function loadForCIK(cik) {
+      if (!cik) return;
+      const url = 'https://data.sec.gov/api/xbrl/companyconcept/CIK' + cik + '/dei/EntityCommonStockSharesOutstanding.json';
+      const res = await fetch(url, { headers: { 'User-Agent': 'TDS-Project/1.0 (25ds3000118@ds.study.iitm.ac.in)' }});
+      if (!res.ok) return;
+      const json = await res.json();
+      const entityName = json.entityName || 'Unknown';
+      const shares = (json.units && json.units.shares) || [];
+      const entries = shares.filter(s => s.fy > '2020' && s.val !== undefined && !isNaN(Number(s.val))).map(s => ({ fy: String(s.fy), val: Number(s.val) }));
+      if (!entries.length) return;
+      let max = entries[0], min = entries[0];
+      for (const e of entries) {
+        if (e.val > max.val) max = e;
+        if (e.val < min.val) min = e;
+      }
+      document.title = entityName + ' - Share Volume';
+      document.getElementById('share-entity-name').textContent = entityName;
+      document.getElementById('share-max-value').textContent = max.val;
+      document.getElementById('share-max-fy').textContent = max.fy;
+      document.getElementById('share-min-value').textContent = min.val;
+      document.getElementById('share-min-fy').textContent = min.fy;
+    }
+
+    (function(){
+      const params = new URLSearchParams(location.search);
+      const cik = params.get('CIK');
+      if (cik) loadForCIK(cik);
+    })();
+  </script>
+</body>
+</html>
